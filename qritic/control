@@ -2,7 +2,7 @@ Package: com.clarence.qritic
 Name: Qritic
 Version: 1.0.5
 Architecture: iphoneos-arm64
-Description: A tweak for the Queue movie app that removes the soft character limit for reviews (now 600), comments (now 300), and user bio (now 600)
+Description: A tweak for the Queue movie app that removes the soft character limit for reviews (now 600), comments (now 300), and user bio (now 300)
 Maintainer: Clarence
 Author: Clarence
 Section: Tweaks

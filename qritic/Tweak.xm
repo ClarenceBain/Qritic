@@ -8,16 +8,55 @@
 @property (nonatomic, assign, readwrite) NSArray *subviews;
 @end
 
+%hook BadgeStreak
+- (void) layoutSubviews {
+	UILabel *weekLabel = MSHookIvar<UILabel*>(self, "weekLabel");
+	UILabel *nextWeekLabel = MSHookIvar<UILabel*>(self, "nextWeekStartsLabel");
+	
+	NSString *weekLabelTmp = weekLabel.text;
+	weekLabelTmp = [weekLabelTmp stringByReplacingOccurrencesOfString:@"Week " withString:@""];
+	
+	NSArray *splitDate = [weekLabelTmp componentsSeparatedByString:@"/"];
+	if(splitDate.count == 2) {
+		NSDate *currentDate = [NSDate date];
+		NSTimeInterval oneWeek = 604800;
+		
+		NSInteger currentWeeks = [splitDate[0] integerValue];
+		NSInteger totalWeeks = [splitDate[1] integerValue];
+		NSInteger weeksLeft = totalWeeks - currentWeeks;
+		NSTimeInterval timeLeft = weeksLeft * oneWeek;
+		
+		NSDate *finishWeek = [currentDate dateByAddingTimeInterval:timeLeft];
+		NSDateFormatter *stringDate = [[NSDateFormatter alloc] init];
+		[stringDate setDateFormat:@"MMM dd, yyyy"];
+		
+		if(![nextWeekLabel.text containsString:@"Badge"]) {
+			NSString *nwlText = nextWeekLabel.text;
+			NSString *finishIncludedText = [[nwlText stringByAppendingString:@"\n\nBadge will be rewarded on:\n"] stringByAppendingString:[stringDate stringFromDate:finishWeek]];
+			
+			nextWeekLabel.numberOfLines = 0;
+			nextWeekLabel.lineBreakMode = NSLineBreakByWordWrapping;
+			nextWeekLabel.text = finishIncludedText;
+			[nextWeekLabel sizeToFit];
+		}
+	}
+	
+	%orig;
+}
+%end
+
 %hook CommentText
 - (void) layoutSubviews {
 	UILabel *countLabel = MSHookIvar<UILabel*>(self, "characterCountLabel");
 	countLabel.text = [countLabel.text stringByReplacingOccurrencesOfString:@"/150" withString:@"/300"];
+	
 	MSHookIvar<int>(self, "characterLimit") = 300;
 	%orig;
 }
 - (bool) textView:(UITextView *)view shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)replacement {
 	UILabel *countLabel = MSHookIvar<UILabel*>(self, "characterCountLabel");
 	countLabel.text = [countLabel.text stringByReplacingOccurrencesOfString:@"/150" withString:@"/300"];
+	
 	MSHookIvar<int>(self, "characterLimit") = 300;
 	return %orig;
 }
@@ -39,6 +78,7 @@
 	if([followButton.titleLabel.text containsString:@"Following"] && CGRectGetWidth(followButton.frame) == 107) {
 		UIImageView *buttonImageView = [followButton.subviews firstObject];
 		UIImage *image = buttonImageView.image;
+		
 		// couldnt get Bundles to work with rootless idk what i'm doing wrong but this works to make it red anyways..
 		UIGraphicsBeginImageContextWithOptions(image.size, NO, image.scale);
 		CGContextRef context = UIGraphicsGetCurrentContext();
@@ -47,6 +87,7 @@
 		CGContextClipToMask(context, rect, image.CGImage);
 		[[UIColor colorWithRed:1.0 green:0.056 blue:0.168 alpha:1.0] setFill];
 		CGContextFillRect(context, rect);
+		
 		UIImage *tintedImage = UIGraphicsGetImageFromCurrentImageContext();
 		UIGraphicsEndImageContext();
 		buttonImageView.image = tintedImage;
@@ -70,11 +111,13 @@
 
 %hook SettingsView
 - (void) layoutSubviews {
-	NSString *qriticVersion = @"\nQritic 1.0.5 - 47"; // not automatic but whatever it works
+	NSString *qriticVersion = @"\nQritic 1.0 - 2"; // not automatic but whatever it works
 	UILabel *versionInfo = MSHookIvar<UILabel*>(self, "versionInfoLabel");
+	
 	if(![versionInfo.text containsString:qriticVersion]) {
 		NSString *versionText = versionInfo.text;
 		NSString *qriticInfo = [versionText stringByAppendingString:qriticVersion];
+		
 		versionInfo.numberOfLines = 0;
 		versionInfo.lineBreakMode = NSLineBreakByWordWrapping;
 		versionInfo.text = qriticInfo;
@@ -94,6 +137,7 @@
 
 %ctor {
 %init(
+BadgeStreak=objc_getClass("WatchQueue.BadgeStreakView"),
 CommentText=objc_getClass("WatchQueue.CommentTextView"),
 EditProfileContent=objc_getClass("WatchQueue.EditProfileContentView"),
 FollowButton=objc_getClass("WatchQueue.FollowButton"),

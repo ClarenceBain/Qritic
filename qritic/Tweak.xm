@@ -8,6 +8,32 @@
 @property (nonatomic, assign, readwrite) NSArray *subviews;
 @end
 
+@interface QueueSearch : UITextField
+@property (nonatomic, assign, readwrite) UIView *superview;
+@end
+
+@interface SearchUser
+- (void) handleFollowButtonTap;
+@end
+
+@interface SearchUserCollection
+//- (void) buttonTapped; somethings wrong w/ this
+@end
+
+int autoFollowMode = 0;
+
+%hook BadgeCounter
+- (void) layoutSubviews {
+	id badgeCounterItem = MSHookIvar<id>(self, "pinnedBadgeView");
+	UILabel *counterLabel = MSHookIvar<UILabel*>(badgeCounterItem, "counterLabel");
+	
+	if(![counterLabel.text containsString:@"/ 54"]) {
+		counterLabel.text = [counterLabel.text stringByAppendingString:@" / 54"];
+	}
+	%orig;
+}
+%end
+
 %hook BadgeStreak
 - (void) layoutSubviews {
 	UILabel *weekLabel = MSHookIvar<UILabel*>(self, "weekLabel");
@@ -31,17 +57,20 @@
 		[stringDate setDateFormat:@"MMM dd, yyyy"];
 		
 		if(![nextWeekLabel.text containsString:@"Badge"]) {
-			NSString *nwlText = nextWeekLabel.text;
-			NSString *finishIncludedText = [[nwlText stringByAppendingString:@"\n\nBadge will be rewarded on:\n"] stringByAppendingString:[stringDate stringFromDate:finishWeek]];
-			
 			nextWeekLabel.numberOfLines = 0;
 			nextWeekLabel.lineBreakMode = NSLineBreakByWordWrapping;
-			nextWeekLabel.text = finishIncludedText;
+			nextWeekLabel.text = [[nextWeekLabel.text stringByAppendingString:@"\n\nBadge will be rewarded on:\n"] stringByAppendingString:[stringDate stringFromDate:finishWeek]];
 			[nextWeekLabel sizeToFit];
 		}
 	}
 	
 	%orig;
+}
+%end
+
+%hook BannerAd
+- (void) layoutSubviews {
+	[self removeFromSuperview];
 }
 %end
 
@@ -51,14 +80,19 @@
 	countLabel.text = [countLabel.text stringByReplacingOccurrencesOfString:@"/150" withString:@"/300"];
 	
 	MSHookIvar<int>(self, "characterLimit") = 300;
-	%orig;
 }
 - (bool) textView:(UITextView *)view shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)replacement {
 	UILabel *countLabel = MSHookIvar<UILabel*>(self, "characterCountLabel");
 	countLabel.text = [countLabel.text stringByReplacingOccurrencesOfString:@"/150" withString:@"/300"];
-	
-	MSHookIvar<int>(self, "characterLimit") = 300;
-	return %orig;
+
+	int characterLimit = MSHookIvar<int>(self, "characterLimit");
+	characterLimit = 300;
+
+	if (view.text.length >= 300 && [replacement isEqualToString:@""]) {
+        view.text = [view.text substringToIndex:view.text.length - 1];
+    }
+
+	return (characterLimit == 300 && view.text.length < characterLimit);
 }
 %end
 
@@ -102,6 +136,42 @@
 }
 %end
 
+%hook QueueSearch
+- (void) textFieldDidBeginEditing:(UITextField *)textField {
+	if([textField.text containsString:@"~"]){
+		return;
+	} else {
+		return %orig;
+	}
+}
+- (void) searchFieldTextChanged:(UITextField *)textField {
+	if([textField.text containsString:@"~"]){
+		UIButton *clearButton = MSHookIvar<UIButton*>(self, "clearButton");
+		[clearButton setHidden:YES];
+		
+		return;
+	} else {
+		return %orig;
+	}
+}
+- (bool) textFieldShouldReturn:(UITextField *)textField {
+	if([textField.text containsString:@"~bm"]){
+		if (autoFollowMode < 2) {
+			autoFollowMode++;
+        } else {
+			autoFollowMode = 0;
+        }
+        
+		NSString *uglymess = @"~bm = ";
+		uglymess = [uglymess stringByAppendingString:[NSString stringWithFormat:@"%d", autoFollowMode]];
+		textField.text = uglymess;
+		return NO;
+	} else {
+		return %orig;
+	}
+}
+%end
+
 %hook ReviewText
 - (bool) textView:(UITextView *)view shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)replacement {
 	MSHookIvar<int>(self, "characterLimit") = 600;
@@ -109,20 +179,59 @@
 }
 %end
 
+%hook SearchUser
+- (void) layoutSubviews {
+	%orig;
+	
+	UIButton *followButton = MSHookIvar<UIButton*>(self, "followButton");
+	if(autoFollowMode == 1) {
+		if([followButton.titleLabel.text isEqualToString:@"Follow"]) {
+			[self handleFollowButtonTap]; // prepare to get rate limited
+		}
+	} else if(autoFollowMode == 2) {
+		if([followButton.titleLabel.text containsString:@"Following"]){
+			[self handleFollowButtonTap];
+		}
+	}
+}
+%end
+
+%hook SearchUserCollection
+- (void) layoutSubviews {
+	%orig;
+	
+	UIButton *followButton = MSHookIvar<UIButton*>(self, "followButton");
+	if([followButton.titleLabel.text containsString:@"Following"]){
+		UIImageView *buttonImageView = [followButton.subviews firstObject];
+		UIImage *image = buttonImageView.image;
+		
+		UIGraphicsBeginImageContextWithOptions(image.size, NO, image.scale);
+		CGContextRef context = UIGraphicsGetCurrentContext();
+		CGRect rect = CGRectMake(0, 0, image.size.width, image.size.height);
+		CGContextSetBlendMode(context, kCGBlendModeNormal);
+		CGContextClipToMask(context, rect, image.CGImage);
+		[[UIColor colorWithRed:1.0 green:0.056 blue:0.168 alpha:1.0] setFill];
+		CGContextFillRect(context, rect);
+		
+		UIImage *tintedImage = UIGraphicsGetImageFromCurrentImageContext();
+		UIGraphicsEndImageContext();
+		buttonImageView.image = tintedImage;
+	}
+}
+%end
+
 %hook SettingsView
 - (void) layoutSubviews {
-	NSString *qriticVersion = @"\nQritic 1.0 - 2"; // not automatic but whatever it works
+	NSString *qriticVersion = @"\nQritic 1.0 - Build 96"; // not automatic but whatever it works
 	UILabel *versionInfo = MSHookIvar<UILabel*>(self, "versionInfoLabel");
 	
 	if(![versionInfo.text containsString:qriticVersion]) {
-		NSString *versionText = versionInfo.text;
-		NSString *qriticInfo = [versionText stringByAppendingString:qriticVersion];
-		
 		versionInfo.numberOfLines = 0;
 		versionInfo.lineBreakMode = NSLineBreakByWordWrapping;
-		versionInfo.text = qriticInfo;
+		versionInfo.text = [versionInfo.text stringByAppendingString:qriticVersion];
 		[versionInfo sizeToFit];
 	}
+	
 	%orig;
 }
 %end
@@ -134,15 +243,20 @@
 	%orig;
 }
 %end
-
+  
 %ctor {
 %init(
+BadgeCounter=objc_getClass("WatchQueue.BadgeCounterView"),
 BadgeStreak=objc_getClass("WatchQueue.BadgeStreakView"),
+BannerAd=objc_getClass("WatchQueue.BannerAdCell"),
 CommentText=objc_getClass("WatchQueue.CommentTextView"),
 EditProfileContent=objc_getClass("WatchQueue.EditProfileContentView"),
 FollowButton=objc_getClass("WatchQueue.FollowButton"),
 MultiLineText=objc_getClass("WatchQueue.MultilineTextInputView"),
+QueueSearch=objc_getClass("WatchQueue.QueueSearchField"),
 ReviewText=objc_getClass("WatchQueue.ReviewTextView"),
+SearchUser=objc_getClass("WatchQueue.SearchUserCell"),
+SearchUserCollection=objc_getClass("WatchQueue.SearchUserCollectionCell"),
 SettingsView=objc_getClass("WatchQueue.SettingsContentView"),
 TitleReactionsContent=objc_getClass("WatchQueue.TitleReactionsContentView"))
 }

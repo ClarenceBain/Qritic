@@ -17,10 +17,16 @@
 @end
 
 @interface SearchUserCollection
-//- (void) buttonTapped; somethings wrong w/ this
+//todo: find a bypass for whatever is wrong w/ this - (void) buttonTapped;
+@end
+
+@interface SuggestedFriend
+- (void) followButtonTapped:(id)sender;
 @end
 
 int autoFollowMode = 0;
+bool autoQueue = NO;
+bool smartFollowMode = NO; // not really "smart" just safe
 
 %hook BadgeCounter
 - (void) layoutSubviews {
@@ -155,16 +161,31 @@ int autoFollowMode = 0;
 	}
 }
 - (bool) textFieldShouldReturn:(UITextField *)textField {
-	if([textField.text containsString:@"~bm"]){
-		if (autoFollowMode < 2) {
-			autoFollowMode++;
-        } else {
-			autoFollowMode = 0;
-        }
-        
-		NSString *uglymess = @"~bm = ";
-		uglymess = [uglymess stringByAppendingString:[NSString stringWithFormat:@"%d", autoFollowMode]];
-		textField.text = uglymess;
+	if([textField.text containsString:@"~"]){
+		NSString *tmpText = textField.text;
+		NSRange endOfCommand = [tmpText rangeOfString:@" "];
+		tmpText = (endOfCommand.location != NSNotFound) ? [tmpText substringToIndex:endOfCommand.location] : tmpText;
+		
+		if([[tmpText stringByReplacingOccurrencesOfString:@"~" withString:@""] isEqualToString:@"auto"]) {
+			if([textField.text containsString:@" -s"] && ![textField.text containsString:@" = "]) {
+				smartFollowMode = !smartFollowMode;
+			}
+			
+			autoFollowMode = (autoFollowMode < 2) ? autoFollowMode + 1 : 0;
+
+			NSString *uglymess = (smartFollowMode) ? @"~auto -s = " : @"~auto = ";
+			uglymess = [uglymess stringByAppendingString:[NSString stringWithFormat:@"%d", autoFollowMode]];
+			if(autoFollowMode == 1) {
+				uglymess = (smartFollowMode) ? [uglymess stringByAppendingString:@" (auto follow active) [S]"] : [uglymess stringByAppendingString:@" (auto follow active)"];
+			} else if (autoFollowMode == 2) {
+				uglymess = (smartFollowMode) ? [uglymess stringByAppendingString:@" (auto unfollow active) [S]"] : [uglymess stringByAppendingString:@" (auto unfollow active)"];	
+			} else {
+				uglymess = [uglymess stringByAppendingString:@" (off)"];
+			}
+			textField.text = uglymess;
+		} else if ([[tmpText stringByReplacingOccurrencesOfString:@"~" withString:@""] isEqualToString:@"kill"]) {
+			exit(0);
+		}
 		return NO;
 	} else {
 		return %orig;
@@ -179,19 +200,39 @@ int autoFollowMode = 0;
 }
 %end
 
+// todo: find a way to avoid being rate limited when following/unfollowing people fast
 %hook SearchUser
 - (void) layoutSubviews {
 	%orig;
 	
 	UIButton *followButton = MSHookIvar<UIButton*>(self, "followButton");
-	if(autoFollowMode == 1) {
-		if([followButton.titleLabel.text isEqualToString:@"Follow"]) {
-			[self handleFollowButtonTap]; // prepare to get rate limited
-		}
-	} else if(autoFollowMode == 2) {
-		if([followButton.titleLabel.text containsString:@"Following"]){
+	UIView *userNameView = smartFollowMode ? MSHookIvar<UIView*>(self, "userNameView") : nil;
+	UIView *userImageView = smartFollowMode ? MSHookIvar<UIView*>(self, "userImageView") : nil;
+	UIImageView *badgeImage = (smartFollowMode && userNameView) ? MSHookIvar<UIImageView*>(userNameView, "badgeImageView") : nil;
+	UILabel *userName = (smartFollowMode && userNameView) ? MSHookIvar<UILabel*>(self, "subtitleLabel") : nil;
+	// sorry for this mouthful below
+	bool isJunkAccount = (userName && [userName.text hasPrefix:@"@user"] && [[userName.text substringFromIndex:5] rangeOfCharacterFromSet:[[NSCharacterSet decimalDigitCharacterSet] invertedSet]].location == NSNotFound) ? YES : NO;
+		
+	if(autoFollowMode == 1 && [followButton.titleLabel.text isEqualToString:@"Follow"]) {
+		if(smartFollowMode && userNameView && userImageView) {
+			bool isVerified = MSHookIvar<bool>(userImageView, "isVerified");
+			if(badgeImage && !isVerified && badgeImage.image && !isJunkAccount) {
+				[self handleFollowButtonTap];
+			}
+		} else {
 			[self handleFollowButtonTap];
 		}
+		return;
+	} else if(autoFollowMode == 2 && [followButton.titleLabel.text containsString:@"Following"]) {
+		if(smartFollowMode && userNameView && userImageView) {
+			bool isVerified = MSHookIvar<bool>(userImageView, "isVerified");
+			if(badgeImage && (isVerified || !badgeImage.image || isJunkAccount)) {
+				[self handleFollowButtonTap];
+			}
+		} else {
+			[self handleFollowButtonTap];
+		}
+		return;
 	}
 }
 %end
@@ -222,7 +263,7 @@ int autoFollowMode = 0;
 
 %hook SettingsView
 - (void) layoutSubviews {
-	NSString *qriticVersion = @"\nQritic 1.0 - Build 96"; // not automatic but whatever it works
+	NSString *qriticVersion = @"\nQritic 1.1 - Build 21"; // not automatic but whatever it works
 	UILabel *versionInfo = MSHookIvar<UILabel*>(self, "versionInfoLabel");
 	
 	if(![versionInfo.text containsString:qriticVersion]) {
@@ -236,6 +277,39 @@ int autoFollowMode = 0;
 }
 %end
 
+%hook SuggestedFriend
+- (void) layoutSubviews {
+	%orig;
+	
+	UIButton *followButton = MSHookIvar<UIButton*>(self, "followButton");
+	UIView *userNameView = smartFollowMode ? MSHookIvar<UIView*>(self, "userNameView") : nil;
+	UIView *userImageView = smartFollowMode ? MSHookIvar<UIView*>(self, "userImageView") : nil;
+	UIImageView *badgeImage = (smartFollowMode && userNameView) ? MSHookIvar<UIImageView*>(userNameView, "badgeImageView") : nil;
+
+	if(autoFollowMode == 1 && [followButton.titleLabel.text isEqualToString:@"Follow"]) {
+		if(smartFollowMode && userNameView && userImageView) {
+			bool isVerified = MSHookIvar<bool>(userImageView, "isVerified");
+			if(badgeImage && !isVerified && badgeImage.image) {
+				[self followButtonTapped:followButton];
+			}
+		} else {
+			[self followButtonTapped:followButton];
+		}
+		return;
+	} else if(autoFollowMode == 2 && [followButton.titleLabel.text containsString:@"Following"]) {
+		if(smartFollowMode && userNameView && userImageView) {
+			bool isVerified = MSHookIvar<bool>(userImageView, "isVerified");
+			if(badgeImage && (isVerified || !badgeImage.image)) {
+				[self followButtonTapped:followButton];
+			}
+		} else {
+			[self followButtonTapped:followButton];
+		}
+		return;
+	}
+}
+%end
+
 %hook TitleReactionsContent
 - (void) layoutSubviews {
 	UILabel *countLabel = MSHookIvar<UILabel*>(self, "$__lazy_storage_$_characterCountLabel");
@@ -243,7 +317,7 @@ int autoFollowMode = 0;
 	%orig;
 }
 %end
-  
+
 %ctor {
 %init(
 BadgeCounter=objc_getClass("WatchQueue.BadgeCounterView"),
@@ -258,5 +332,6 @@ ReviewText=objc_getClass("WatchQueue.ReviewTextView"),
 SearchUser=objc_getClass("WatchQueue.SearchUserCell"),
 SearchUserCollection=objc_getClass("WatchQueue.SearchUserCollectionCell"),
 SettingsView=objc_getClass("WatchQueue.SettingsContentView"),
+SuggestedFriend=objc_getClass("WatchQueue.SuggestedFriendView"),
 TitleReactionsContent=objc_getClass("WatchQueue.TitleReactionsContentView"))
 }

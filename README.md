@@ -1,30 +1,79 @@
 # Qritic
-A rootless arm64e IOS tweak for the Queue movie app that removes the soft character limit on reviews, comments, and the user bio
 
-# Features:
-+ Expands Reviews character limit to 600
-+ Expands Comments character limit to 300
-+ Expands User Bio character limit to 290
-+ Users who do not follow you back will have their Following button colored red in various locations throughout the app
-+ Within the Watch Streaks badges, the progress section will now tell you the dates the badges will be rewarded on
-- Added advanced features only accessible through commands executed within the searchbars spread through the application
-  - Command Prefix: ~
-  - Current Commands
-    - auto [usage: ~auto] enables auto follow/unfollow
-      - -s [usage: ~auto -s] enables smart mode
-    - kill [usage: ~kill] kills the app
-  - When you want to execute the command just press return on the keyboard
- 
-  - Things to know about auto follow/unfollow
-    - It works throughout the application, specifically within Followers/Following tabs and Suggested Friends views
-    - You'll likely get alerts saying "Oops" or "Conflict", these can be ignored for the first several but eventually they will be because you've gotten rate limited
-    - How to get rate limited/what is it?
-      - I had a few people test this and we each followed >=5000 people and are accounts were limited multiple times throughout, took us about an hour or two to finish
-      - Its pretty much the app limiting what data is being sent/received from your account, from my testing if you are rate limited you can expect:
-        - Nothing will load (movies, notifications, Discover page, Friends page, profile edit page, etc..)
-        - IQueue will not update for the time being
-        - Followers/Following will not update for the time being 
-    - Following >= 5000 people (w/out smart mode) scored us each roughly 700 followers and counting over the course of three days, we are assuming most of the accounts we followed are inactive
-     - Follow pool we all dug into (@bumblebee, @rikif7, and @xpascal) and we strictly avoided their "Following" counts and stuck to only their followers
+Qritic is an iOS tweak designed specifically for arm64e rootless devices, it enhances the functionality and (my personal) user experience of the Queue movie app by adding various QoL/modifications throughout the application.
 
-This tweak is mostly for personal use so I have no real interest or motivation to add these settings as toggles, if the day comes that _I_ go public with this (r/jailbreak) i'll probably implement some sort of Settings
+There are no settings to enable/disable a main feature due to the fact this is for my own personal use, but thats the wonder of open source.
+
+## Getting Started
+
+### Dependencies
+
+* Jailbroken arm64e IOS device, which would most likely be rootless
+* Queue movie application from the appstore
+
+### Installing
+
+* You can get the .deb file of the most recent version directly from [here](https://github.com/ClarenceBain/Qritic/releases)
+* Once downloaded on your IOS device you can use Filza to open it through your package manager (Sileo, etc.) of choice and install the tweak
+
+## Features
+
+### Badge Count
+
+* Badge count now shows an "out of" amount
+<img src="pictures/streak.jpg" width="250">
+
+### Better Badge Information
+
+* When viewing the streak challenge badges at the top it now supplies accuarate information of when each week starts and when the badge will be rewarded
+<img src="pictures/badge.jpg" width="250">
+
+### Friends/Followers
+
+* Now when scrolling through your following/mutuals/discovery of users, anyone you follow but does not follow you back will appear with a red Following button
+<img src="pictures/following.jpg" width="250">
+
+### No More Soft-Character Restrictions
+
+* Although the applications server end still has limits, I've removed the soft limit imposed on the client end
+
+#### Bio
+* Limit now increased to 290 characters
+
+<img src="pictures/bio2.jpg" width="200"><img src="pictures/bio.jpg" width="300">
+
+#### Comments
+* Limit now increased to 300 characters
+
+<img src="pictures/comment.jpg" width="250"><img src="pictures/comment2.jpg" width="300">
+
+#### Reviews
+* Limit now increased to 600 characters
+
+<img src="pictures/review.jpg" width="250"><img src="pictures/review2.jpg" width="300">
+
+### Advanced Commands
+* I've also added advanced commands that can allow the user to do multiple things
+* Current commands:
+  * ~auto
+    * Enables auto follow/unfollow mode
+  * ~auto -s
+    * Enables auto "smart" follow/unfollow mode which ignores verified users and potential junk accounts
+  * ~kill
+    * No real use for anyone but me, but it kills the application
+   
+* These commands are to be executed through any of the search bars located within the application, just type the command and press return on the keyboard
+
+## Bugs & Issues
+
+* Its possible to break your account page adding 60+ keyboard returns in your bio, I don't see any logical way this would happen without you purposely doing this
+  * You will only be able to fix it using some form of Flex
+* Comment character count may say /150 still but I can assure you that it maxes at 300 characters
+* You can potentially get banned if you purposely try and disrupt comments/reviews by spamming keyboard returns to make a huge block review/comment
+* When using the advanced commands, like auto follow/unfollow, its likely your account will get rate limited if you go incredibly fast
+  * The length of time your account is limited depends on how fast you were going
+  * You'll notice error messages which can be ignored at first, but eventually you'll be rate limited
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE) file for details

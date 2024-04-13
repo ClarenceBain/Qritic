@@ -1,6 +1,5 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
-#import <rootless.h>
 
 @interface FollowButton
 @property (nonatomic, assign, readwrite) UILabel *titleLabel;
@@ -57,8 +56,8 @@ bool smartFollowMode = NO; // not really "smart" just safe
 		NSInteger totalWeeks = [splitDate[1] integerValue];
 		NSInteger weeksLeft = totalWeeks - currentWeeks;
 		NSTimeInterval timeLeft = weeksLeft * oneWeek;
-		
-		NSDate *finishWeek = [currentDate dateByAddingTimeInterval:timeLeft];
+
+		NSDate *finishWeek = [[NSCalendar currentCalendar] nextDateAfterDate:[currentDate dateByAddingTimeInterval:timeLeft] matchingUnit:NSCalendarUnitWeekday value:2 options:NSCalendarSearchBackwards | NSCalendarMatchNextTime];
 		NSDateFormatter *stringDate = [[NSDateFormatter alloc] init];
 		[stringDate setDateFormat:@"MMM dd, yyyy"];
 		
@@ -68,6 +67,14 @@ bool smartFollowMode = NO; // not really "smart" just safe
 			nextWeekLabel.text = [[nextWeekLabel.text stringByAppendingString:@"\n\nBadge will be rewarded on:\n"] stringByAppendingString:[stringDate stringFromDate:finishWeek]];
 			[nextWeekLabel sizeToFit];
 		}
+	}
+	
+	if([nextWeekLabel.text containsString:@"Monday"]) {
+		NSDate *nextMonday = [[NSCalendar currentCalendar] nextDateAfterDate:[NSDate date] matchingUnit:NSCalendarUnitWeekday value:2 options:NSCalendarMatchNextTime];
+		NSDateFormatter *stringDate = [[NSDateFormatter alloc] init];
+		[stringDate setDateFormat:@"\nMMM dd, yyyy"];
+		
+		nextWeekLabel.text = [nextWeekLabel.text stringByReplacingOccurrencesOfString:@"Monday" withString:[stringDate stringFromDate:nextMonday]];
 	}
 	
 	%orig;
@@ -263,7 +270,7 @@ bool smartFollowMode = NO; // not really "smart" just safe
 
 %hook SettingsView
 - (void) layoutSubviews {
-	NSString *qriticVersion = @"\nQritic 1.1 - Build 21"; // not automatic but whatever it works
+	NSString *qriticVersion = @"\nQritic 1.1 - Build 24"; // not automatic but whatever it works
 	UILabel *versionInfo = MSHookIvar<UILabel*>(self, "versionInfoLabel");
 	
 	if(![versionInfo.text containsString:qriticVersion]) {

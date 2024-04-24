@@ -59,6 +59,10 @@ There are no settings to enable/disable a main feature due to the fact this is f
     * Enables auto follow/unfollow mode
   * ~auto -s
     * Enables auto "smart" follow/unfollow mode which ignores verified users and potential junk accounts
+  * ~iqbot
+    * Enables IQueue Point bot
+	* Requires an alt account and auto reacts to a given review
+	* Pretty slow, only does +1 but throw a movie on and earn IQueue through watch time
   * ~kill
     * No real use for anyone but me, but it kills the application
    

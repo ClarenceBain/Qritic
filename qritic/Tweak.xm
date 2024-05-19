@@ -1,6 +1,9 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
+@interface BannerAd : UIView
+@end
+
 @interface FeedReaction
 - (void) didTapReactionButton:(id)sender;
 @end
@@ -17,6 +20,10 @@
 
 @interface NoteText : UIView
 @property (nonatomic, assign, readwrite) UIView *superview;
+@end
+
+@interface QueueOptions
+- (void) optionButtonTapped:(id)sender;
 @end
 
 @interface QueueSearch : UITextField
@@ -37,7 +44,8 @@
 
 int autoFollowMode = 0;
 bool smartFollowMode = NO; // not really "smart" just safe
-bool iqBot = NO; // slow, but works.. watch a movie?
+bool iqBot = NO; // slow, but works.. watch a movie? (someone caught onto this..)
+bool iqBot2 = NO; // lets try this, requires autotouch to properly work
 
 
 %hook BadgeCounter
@@ -45,8 +53,8 @@ bool iqBot = NO; // slow, but works.. watch a movie?
 	id badgeCounterItem = MSHookIvar<id>(self, "pinnedBadgeView");
 	UILabel *counterLabel = MSHookIvar<UILabel*>(badgeCounterItem, "counterLabel");
 	
-	if(![counterLabel.text containsString:@"/ 54"]) {
-		counterLabel.text = [counterLabel.text stringByAppendingString:@" / 54"];
+	if(![counterLabel.text containsString:@"/ 55"]) {
+		counterLabel.text = [counterLabel.text stringByAppendingString:@" / 55"];
 	}
 	%orig;
 }
@@ -95,8 +103,21 @@ bool iqBot = NO; // slow, but works.. watch a movie?
 %end
 
 %hook BannerAd
+- (id) initWithFrame:(CGRect)frame {
+	return %orig(CGRectZero);
+}
+- (id) initWithCoder:(id)coder {
+	BannerAd *cell = %orig(coder);
+	if (cell) {
+		cell.frame = CGRectZero;
+	}
+	
+	return cell;
+}
 - (void) layoutSubviews {
-	[self removeFromSuperview];
+	BannerAd *cell = (BannerAd *)self;
+	//[cell removeFromSuperview];
+	[cell.superview setNeedsLayout]; 
 }
 %end
 
@@ -226,6 +247,19 @@ bool iqBot = NO; // slow, but works.. watch a movie?
 }
 %end
 
+%hook QueueOptions
+- (void) layoutSubviews {
+	%orig;
+		
+	if(iqBot2) {
+		QueueOptions *queueOptions = (QueueOptions *)self;
+		UIStackView *options = MSHookIvar<UIStackView*>(self, "stackView");
+		
+		[queueOptions optionButtonTapped:[options.subviews lastObject]];
+	}
+}
+%end
+
 %hook QueueSearch
 - (void) textFieldDidBeginEditing:(UITextField *)textField {
 	if([textField.text containsString:@"~"]){
@@ -269,6 +303,8 @@ bool iqBot = NO; // slow, but works.. watch a movie?
 			textField.text = uglymess;
 		} else if ([[tmpText stringByReplacingOccurrencesOfString:@"~" withString:@""] isEqualToString:@"iqbot"]) {
 			iqBot = !iqBot; // ill add proper later
+		} else if ([[tmpText stringByReplacingOccurrencesOfString:@"~" withString:@""] isEqualToString:@"iqbot2"]) {
+			iqBot2 = !iqBot2; // ill add proper later
 		} else if ([[tmpText stringByReplacingOccurrencesOfString:@"~" withString:@""] isEqualToString:@"kill"]) {
 			exit(0);
 		}
@@ -349,7 +385,7 @@ bool iqBot = NO; // slow, but works.. watch a movie?
 
 %hook SettingsView
 - (void) layoutSubviews {
-	NSString *qriticVersion = @"\nQritic 1.1 - Build 55"; // not automatic but whatever it works
+	NSString *qriticVersion = @"\nQritic 1.1 - Build 60"; // not automatic but whatever it works
 	UILabel *versionInfo = MSHookIvar<UILabel*>(self, "versionInfoLabel");
 	
 	if(![versionInfo.text containsString:qriticVersion]) {
@@ -425,6 +461,7 @@ MainComment=objc_getClass("WatchQueue.MainCommentView"),
 MultiLineText=objc_getClass("WatchQueue.MultilineTextInputView"),
 NoteReplyView=objc_getClass("WatchQueue.NotificationReplyTextView"),
 NoteText=objc_getClass("WatchQueue.NoteTextView"),
+QueueOptions=objc_getClass("WatchQueue.QueueOptionsView"),
 QueueSearch=objc_getClass("WatchQueue.QueueSearchField"),
 ReviewText=objc_getClass("WatchQueue.ReviewTextView"),
 SearchUser=objc_getClass("WatchQueue.SearchUserCell"),

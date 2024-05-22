@@ -18,12 +18,7 @@ There are no settings to enable/disable a main feature due to the fact this is f
 
 ## Features
 
-### Badge Count
-
-* Badge count now shows an "out of" amount
-<img src="pictures/streak.jpg" width="250">
-
-### Better Badge Information
+### Better Streak Badge Information
 
 * When viewing the streak challenge badges at the top it now supplies accuarate information of when each week starts and when the badge will be rewarded
 <img src="pictures/badge.jpg" width="250">
@@ -46,11 +41,6 @@ There are no settings to enable/disable a main feature due to the fact this is f
 * Limit now increased to 300 characters
 
 <img src="pictures/comment.jpg" width="250"><img src="pictures/comment2.jpg" width="300">
-
-#### Reviews
-* Limit now increased to 600 characters
-
-<img src="pictures/review.jpg" width="250"><img src="pictures/review2.jpg" width="300">
 
 ### Advanced Commands
 * I've also added advanced commands that can allow the user to do multiple things

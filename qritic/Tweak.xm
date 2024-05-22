@@ -1,9 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-@interface BannerAd : UIView
-@end
-
 @interface FeedReaction
 - (void) didTapReactionButton:(id)sender;
 @end
@@ -47,19 +44,6 @@ bool smartFollowMode = NO; // not really "smart" just safe
 bool iqBot = NO; // slow, but works.. watch a movie? (someone caught onto this..)
 bool iqBot2 = NO; // lets try this, requires autotouch to properly work
 
-
-%hook BadgeCounter
-- (void) layoutSubviews {
-	id badgeCounterItem = MSHookIvar<id>(self, "pinnedBadgeView");
-	UILabel *counterLabel = MSHookIvar<UILabel*>(badgeCounterItem, "counterLabel");
-	
-	if(![counterLabel.text containsString:@"/ 55"]) {
-		counterLabel.text = [counterLabel.text stringByAppendingString:@" / 55"];
-	}
-	%orig;
-}
-%end
-
 %hook BadgeStreak
 - (void) layoutSubviews {
 	UILabel *weekLabel = MSHookIvar<UILabel*>(self, "weekLabel");
@@ -99,25 +83,6 @@ bool iqBot2 = NO; // lets try this, requires autotouch to properly work
 	}
 	
 	%orig;
-}
-%end
-
-%hook BannerAd
-- (id) initWithFrame:(CGRect)frame {
-	return %orig(CGRectZero);
-}
-- (id) initWithCoder:(id)coder {
-	BannerAd *cell = %orig(coder);
-	if (cell) {
-		cell.frame = CGRectZero;
-	}
-	
-	return cell;
-}
-- (void) layoutSubviews {
-	BannerAd *cell = (BannerAd *)self;
-	//[cell removeFromSuperview];
-	[cell.superview setNeedsLayout]; 
 }
 %end
 
@@ -315,13 +280,6 @@ bool iqBot2 = NO; // lets try this, requires autotouch to properly work
 }
 %end
 
-%hook ReviewText
-- (bool) textView:(UITextView *)view shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)replacement {
-	MSHookIvar<int>(self, "characterLimit") = 600;
-    return %orig;
-}
-%end
-
 // todo: find a way to avoid being rate limited when following/unfollowing people fast
 %hook SearchUser
 - (void) layoutSubviews {
@@ -385,7 +343,7 @@ bool iqBot2 = NO; // lets try this, requires autotouch to properly work
 
 %hook SettingsView
 - (void) layoutSubviews {
-	NSString *qriticVersion = @"\nQritic 1.1 - Build 60"; // not automatic but whatever it works
+	NSString *qriticVersion = @"\nQritic 1.1 - Build 62"; // not automatic but whatever it works
 	UILabel *versionInfo = MSHookIvar<UILabel*>(self, "versionInfoLabel");
 	
 	if(![versionInfo.text containsString:qriticVersion]) {
@@ -440,19 +398,9 @@ bool iqBot2 = NO; // lets try this, requires autotouch to properly work
 }
 %end
 
-%hook TitleReactionsContent
-- (void) layoutSubviews {
-	UILabel *countLabel = MSHookIvar<UILabel*>(self, "$__lazy_storage_$_characterCountLabel");
-	countLabel.text = [countLabel.text stringByReplacingOccurrencesOfString:@"/280" withString:@"/600"];
-	%orig;
-}
-%end
-
 %ctor {
 %init(
-BadgeCounter=objc_getClass("WatchQueue.BadgeCounterView"),
 BadgeStreak=objc_getClass("WatchQueue.BadgeStreakView"),
-BannerAd=objc_getClass("WatchQueue.BannerAdCell"),
 CommentText=objc_getClass("WatchQueue.CommentTextView"),
 EditProfileContent=objc_getClass("WatchQueue.EditProfileContentView"),
 FeedReaction=objc_getClass("WatchQueue.FeedReactionSelectionView"),
@@ -463,11 +411,9 @@ NoteReplyView=objc_getClass("WatchQueue.NotificationReplyTextView"),
 NoteText=objc_getClass("WatchQueue.NoteTextView"),
 QueueOptions=objc_getClass("WatchQueue.QueueOptionsView"),
 QueueSearch=objc_getClass("WatchQueue.QueueSearchField"),
-ReviewText=objc_getClass("WatchQueue.ReviewTextView"),
 SearchUser=objc_getClass("WatchQueue.SearchUserCell"),
 SearchUserCollection=objc_getClass("WatchQueue.SearchUserCollectionCell"),
 SettingsView=objc_getClass("WatchQueue.SettingsContentView"),
 ShareTitleContent=objc_getClass("WatchQueue.ShareTitleContentView"),
-SuggestedFriend=objc_getClass("WatchQueue.SuggestedFriendView"),
-TitleReactionsContent=objc_getClass("WatchQueue.TitleReactionsContentView"))
+SuggestedFriend=objc_getClass("WatchQueue.SuggestedFriendView"))
 }
